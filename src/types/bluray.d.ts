@@ -1,4 +1,4 @@
-import { BlurayTitle } from './interface';
+import { BlurayTitle, MObjCommand, MObjObject } from './interface';
 
 export interface Vector<T> {
     size(): number;
@@ -15,4 +15,15 @@ export type DiscInfo = Pick<Info,
     'titles' | 'topMenu' | 'topMenuSupported'
 > & {
     titles: BlurayTitle[];
+}
+
+export interface Command extends MObjCommand {
+    id: number;
+    instructionHex: string;
+    destinationHex: string;
+    sourceHex: string;
+}
+
+export type MovieObject = Omit<MObjObject, 'numCommands' | 'commands'> & {
+    commands: Command[];
 }

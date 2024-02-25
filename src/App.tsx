@@ -1,17 +1,19 @@
 import './App.scss';
 import { Route, Routes } from 'react-router-dom';
-import Home from './components/Home';
+import MovieObjects from './components/MovieObjects';
 import Header from './components/Header';
 import { useCallback, useEffect, useRef } from 'react';
 import { useAppDispatch, useAppSelector } from './store/hooks';
 import { selectDom, setLoading } from './store/dom';
-import { DiscInfoPayload, Message, MessageType } from './types/message';
-import { setDiscInfo } from './store/bluray';
-import { CircularProgress, Modal } from '@mui/material';
+import { DiscInfoPayload, Message, MessageType, MovieObjectPayload } from './types/message';
+import { selectBluray, setDirname, setDiscInfo, setMovieObjects } from './store/bluray';
+import { Button, CircularProgress, Modal } from '@mui/material';
+import { boolAffirm, getFilesRecursively } from './util';
 
 const App = () => {
     const dispatch = useAppDispatch();
     const { loading } = useAppSelector(selectDom);
+    const { dirname, discInfo } = useAppSelector(selectBluray);
     const workerRef = useRef<Worker | null>(null);
 
     const handleMessage = useCallback(<T extends MessageType, P>(
@@ -21,15 +23,44 @@ const App = () => {
             case 'ready':
                 dispatch(setLoading(false));
                 break;
-            case 'discInfo':
+            case 'discInfo': {
                 const payload = message.payload as DiscInfoPayload;
                 dispatch(setDiscInfo(payload));
                 dispatch(setLoading(false));
                 break;
+            }
+            case 'movieObject': {
+                const payload = message.payload as MovieObjectPayload;
+                dispatch(setMovieObjects(payload));
+                break;
+            }
             default:
                 console.log(message);
         }
     }, [dispatch]);
+
+    const handleSelect = async () => {
+        if (!window.Worker || !workerRef.current)
+            return;
+
+        dispatch(setLoading(true));
+
+        const dirHandle = await window.showDirectoryPicker()
+            .catch(e => {
+                dispatch(setLoading(false));
+            });
+
+        if (!dirHandle) return;
+        
+        dispatch(setDirname(dirHandle.name));
+
+        const files: [string[], File][] = [];
+        for await (const file of getFilesRecursively(dirHandle, dirHandle)) {
+            files.push(file);
+        }
+
+        workerRef.current.postMessage({ type: 'upload', payload: files });
+    }
 
     useEffect(() => {
         if (!dispatch) return;
@@ -61,8 +92,41 @@ const App = () => {
                 <CircularProgress size='5rem' />
             </Modal>
             <main>
+                <div className='disc-info'>
+                    <Button variant="contained" onClick={handleSelect}>
+                        Select BD-ROM folder
+                    </Button>
+                    { discInfo && <>
+                    <h1>{dirname}</h1>
+                        {discInfo.blurayDetected ? <>
+                    <h2>AACS Detected</h2>
+                    <p>{boolAffirm(discInfo.aacsDetected)}</p>
+                    <h2>BDJO Detected</h2>
+                    <p>{boolAffirm(discInfo.bdjDetected)}</p>
+                        {discInfo.bdjDetected ? <>
+                    <h2>BDJO Title Count</h2>
+                    <p>{discInfo.numBDJTitles}</p>
+                        </> : null}
+                    <h2>HDMV Title Count</h2>
+                    <p>{discInfo.numHDMVTitles}</p>
+                        {discInfo.bdjDetected ? <>
+                    <h2>Total Title Count</h2>
+                    <p>{discInfo.numTitles}</p>
+                        </> : null}
+                        {discInfo.numUnsupportedTitles > 0 ? <>
+                    <h2>Unsupported Title Count</h2>
+                    <p>{discInfo.numUnsupportedTitles}</p>
+                        </> : null}
+                    <h2>First Play Supported</h2>
+                    <p>{boolAffirm(discInfo.firstPlaySupported)}</p>
+                    <h2>Top Menu Supported</h2>
+                    <p>{boolAffirm(discInfo.topMenuSupported)}</p>
+                        </> : <p>No Bluray detected!</p>}
+                    </> }
+                </div>
                 <Routes>
-                    <Route path='/' element={<Home worker={workerRef} />} />
+                    <Route path='/' Component={MovieObjects} />
+                    {/* <Route path='/playlists' element={<Home worker={workerRef} />} /> */}
                 </Routes>
             </main>
         </div>

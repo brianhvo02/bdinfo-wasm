@@ -11,7 +11,7 @@ header {
 
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    // justify-content: space-between;
 
     background-color: #23252b;
 
@@ -37,5 +37,12 @@ header {
     .logo:hover {
         color: white;
         cursor: pointer;
+    }
+
+    nav {
+        margin-left: 4rem;
+        display: flex;
+        align-items: center;
+        gap: 2rem;
     }
 }
