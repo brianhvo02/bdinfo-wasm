@@ -2,7 +2,7 @@
 import type { PyodideInterface } from 'pyodide';
 import { MainModule } from './types/interface';
 import { Message, MessageType, UploadPayload } from './types/message';
-import { convertDiscInfo, convertMovieObject } from './util';
+import { convertDiscInfo, convertMetadata, convertMovieObject, convertTitleInfoMulti } from './util';
 
 importScripts('./libbluray_web.js', 'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js');
 
@@ -35,6 +35,19 @@ const pyodideLoader = (loadPyodide({ packages: ['/static/py/pypng.whl', '/static
         }
     });
 
+const recursiveUnlink = (path: string) => {
+    const paths: string[] = FS.readdir(path).slice(2);
+    paths.forEach(p => {
+        const newPath = path + '/' + p;
+        if (FS.isDir(FS.lstat(newPath).mode)) {
+            recursiveUnlink(newPath);
+            FS.rmdir(newPath);
+        } else {
+            FS.unlink(newPath);
+        }
+    });
+}
+
 const mountFileSystem = (streams: File[], payload: UploadPayload) => {
     const { maxLen, files } = payload.reduce((
         obj: { maxLen: number, files: File[] }, [paths, file]
@@ -46,17 +59,23 @@ const mountFileSystem = (streams: File[], payload: UploadPayload) => {
         return obj;
     }, { maxLen: 0, files: [] });
 
-    FS.mkdir('/files');
+    try {
+        FS.mkdir('/files');
+        FS.mkdir('/mnt');
+    } catch (e) {
+        FS.unmount('/files');
+        recursiveUnlink('/mnt');
+    }
+
     // @ts-ignore
     FS.mount(WORKERFS, { files }, '/files');
 
-    FS.mkdir('/mnt');
+    
     for (let i = 0; i <= maxLen; i++) {
         payload.forEach(([paths, file]) => {
             if (paths.length <= i) return;
             if (paths.length - 1 === i) {
                 const path = '/mnt/' + paths.join('/');
-                // console.log('Creating symlink to:', path);
                 if (file.name.includes('m2ts'))
                     streams.push(file);
                 FS.symlink('/files/' + file.name, path);
@@ -64,13 +83,10 @@ const mountFileSystem = (streams: File[], payload: UploadPayload) => {
             }
 
             const path = '/mnt/' + paths.slice(0, i + 1).join('/');
-            // console.log('Creating directory:', path);
             try {
                 FS.mkdir(path);
             } catch (e) {
                 if ((e as any).errno !== 20) throw e;
-
-                // console.log('Directory exists!');
             }
         });
     }
@@ -106,13 +122,23 @@ new Promise<MainModule>(resolve => {
                     payload: convertDiscInfo(info)
                 });
 
-                const rawMovieObject = libbluray.readMobj('/files/MovieObject.bdmv');
-                const movieObjects = convertMovieObject(rawMovieObject);
-
+                const movieObjects = libbluray.readMobj('/files/MovieObject.bdmv');
                 postMessage({
                     type: 'movieObject',
-                    payload: movieObjects
+                    payload: convertMovieObject(movieObjects)
                 });
+
+                const playlists = libbluray.getAllPlaylistInfo();
+                postMessage({
+                    type: 'playlists',
+                    payload: convertTitleInfoMulti(playlists)
+                });
+
+                const metadata = libbluray.getMetadata();
+
+                convertMetadata(metadata)
+                    .then(payload => postMessage({ type: 'metadata', payload }));
+                
 
                 break;
             default:

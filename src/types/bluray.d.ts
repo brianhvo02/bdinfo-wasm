@@ -1,4 +1,4 @@
-import { BlurayTitle, MObjCommand, MObjObject } from './interface';
+import { BlurayTitle, ClipInfo, Info, MObjCommand, MObjObject, MetaDiscLibrary, MetaThumbnail, MetaTitle, StreamInfo, TitleChapter, TitleInfo, TitleMark } from './interface';
 
 export interface Vector<T> {
     size(): number;
@@ -10,10 +10,11 @@ export interface Vector<T> {
 }
 
 export type DiscInfo = Pick<Info,
-    'aacsDetected' | 'bdjDetected' | 'blurayDetected' | 'firstPlay' | 'firstPlaySupported' |
-    'noMenuSupport' | 'numBDJTitles' | 'numHDMVTitles' | 'numTitles' | 'numUnsupportedTitles' |
-    'titles' | 'topMenu' | 'topMenuSupported'
+    'aacsDetected' | 'bdjDetected' | 'blurayDetected' | 'firstPlay' | 
+    'firstPlaySupported' | 'noMenuSupport' | 'numBDJTitles' | 'numHDMVTitles' | 'numTitles' | 
+    'numUnsupportedTitles' | 'topMenu' | 'topMenuSupported'
 > & {
+    discName: string;
     titles: BlurayTitle[];
 }
 
@@ -26,4 +27,32 @@ export interface Command extends MObjCommand {
 
 export type MovieObject = Omit<MObjObject, 'numCommands' | 'commands'> & {
     commands: Command[];
+}
+
+export type Clip = Omit<ClipInfo, 
+    'audioStreams' | 'videoStreams' | 
+    'igStreams' | 'pgStreams' | 
+    'secondaryAudioStreams' | 'secondaryVideoStreams'
+> & {
+    audioStreams: Stream[];
+    videoStreams: Stream[];
+    igStreams: Stream[];
+    pgStreams: Stream[];
+    secondaryAudioStreams: Stream[];
+    secondaryVideoStreams: Stream[];
+}
+
+export type Title = Pick<TitleInfo, 'playlist' | 'duration' | 'chapterCount' | 'markCount' | 'clipCount'> & {
+    chapters: TitleChapter[];
+    marks: TitleMark[];
+    clips: Clip[];
+}
+
+export type Thumbnail = MetaThumbnail & {
+    base64: string;
+}
+
+export type Metadata = Omit<MetaDiscLibrary, 'tocEntries' | 'thumbnails'> & {
+    tocEntries: MetaTitle[];
+    thumbnails: Thumbnail[];
 }

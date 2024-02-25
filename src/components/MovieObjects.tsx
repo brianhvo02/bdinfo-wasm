@@ -1,8 +1,7 @@
 import { Box, Tab, Tabs } from '@mui/material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import './MovieObjects.scss';
-import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { WorkerProps } from '../types/props';
+import { useAppSelector } from '../store/hooks';
 import { selectBluray } from '../store/bluray';
 import { useState } from 'react';
 

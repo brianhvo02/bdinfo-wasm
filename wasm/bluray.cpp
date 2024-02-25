@@ -1,6 +1,7 @@
 #include <emscripten/bind.h>
 #include <libbluray/bluray.h>
 #include <libbluray/hdmv/mobj_data.h>
+#include <libbluray/bdnav/meta_data.h>
 #include <stdio.h>
 #include <sstream>
 #include <cstring>
@@ -9,6 +10,12 @@ using namespace emscripten;
 using namespace std;
 
 BLURAY* bd;
+
+string uint64_to_string(uint64_t value) {
+    ostringstream os;
+    os << value;
+    return os.str();
+}
 
 EMSCRIPTEN_KEEPALIVE
 string version() {
@@ -251,7 +258,7 @@ struct StreamInfo {
     uint8_t  format;
     uint8_t  rate;
     uint8_t  char_code;
-    val      lang;
+    string   lang;
     uint16_t pid;
     uint8_t  aspect;
     uint8_t  subpath_id;
@@ -273,24 +280,40 @@ struct ClipInfo {
     vector<StreamInfo> ig_streams;
     vector<StreamInfo> sec_audio_streams;
     vector<StreamInfo> sec_video_streams;
-    uint64_t           start_time;
-    uint64_t           in_time;
-    uint64_t           out_time;
+    string             start_time;
+    string             in_time;
+    string             out_time;
     string             clip_id;
+};
+struct TitleChapter {
+    uint32_t    idx;
+    string      start;
+    string      duration;
+    string      offset;
+    unsigned    clip_ref;
+};
+
+struct TitleMark {
+    uint32_t    idx;
+    int         type;
+    string      start;
+    string      duration;
+    string      offset;
+    unsigned    clip_ref;
 };
 
 struct TitleInfo {
-    uint32_t                     idx;
-    uint32_t                     playlist;
-    uint64_t                     duration;
-    uint32_t                     clip_count;
-    uint8_t                      angle_count;
-    uint32_t                     chapter_count;
-    uint32_t                     mark_count;
-    vector<ClipInfo>             clips;
-    vector<BLURAY_TITLE_CHAPTER> chapters;
-    vector<BLURAY_TITLE_MARK>    marks;
-    uint8_t                      mvc_base_view_r_flag;
+    uint32_t             idx;
+    uint32_t             playlist;
+    string               duration;
+    uint32_t             clip_count;
+    uint8_t              angle_count;
+    uint32_t             chapter_count;
+    uint32_t             mark_count;
+    vector<ClipInfo>     clips;
+    vector<TitleChapter> chapters;
+    vector<TitleMark>    marks;
+    uint8_t              mvc_base_view_r_flag;
 };
 
 StreamInfo convert_stream_info(BLURAY_STREAM_INFO *info) {
@@ -299,10 +322,31 @@ StreamInfo convert_stream_info(BLURAY_STREAM_INFO *info) {
         info->format,
         info->rate,
         info->char_code,
-        val(typed_memory_view(sizeof(info->lang), info->lang)),
+        string((char *)info->lang),
         info->pid,
         info->aspect,
         info->subpath_id
+    });
+}
+
+TitleChapter convert_title_chapter(BLURAY_TITLE_CHAPTER *chapter) {
+    return TitleChapter({
+        chapter->idx,
+        uint64_to_string(chapter->start),
+        uint64_to_string(chapter->duration),
+        uint64_to_string(chapter->offset),
+        chapter->clip_ref
+    });
+}
+
+TitleMark convert_title_mark(BLURAY_TITLE_MARK *mark) {
+    return TitleMark({
+        mark->idx,
+        mark->type,
+        uint64_to_string(mark->start),
+        uint64_to_string(mark->duration),
+        uint64_to_string(mark->offset),
+        mark->clip_ref
     });
 }
 
@@ -353,9 +397,9 @@ ClipInfo convert_clip_info(BLURAY_CLIP_INFO *info) {
         ig_streams,
         sec_audio_streams,
         sec_video_streams,
-        info->start_time,
-        info->in_time,
-        info->out_time,
+        uint64_to_string(info->start_time),
+        uint64_to_string(info->in_time),
+        uint64_to_string(info->out_time),
         info->clip_id
     });
 }
@@ -366,20 +410,20 @@ TitleInfo convert_title_info(BLURAY_TITLE_INFO *info) {
         clips.push_back(convert_clip_info(&info->clips[i]));
     }
 
-    vector<BLURAY_TITLE_CHAPTER> chapters;
+    vector<TitleChapter> chapters;
     for (int i = 0; i < info->chapter_count; i++) {
-        chapters.push_back(info->chapters[i]);
+        chapters.push_back(convert_title_chapter(&info->chapters[i]));
     }
 
-    vector<BLURAY_TITLE_MARK> marks;
+    vector<TitleMark> marks;
     for (int i = 0; i < info->mark_count; i++) {
-        marks.push_back(info->marks[i]);
+        marks.push_back(convert_title_mark(&info->marks[i]));
     }
 
     return TitleInfo({
         info->idx,
         info->playlist,
-        info->duration,
+        uint64_to_string(info->duration),
         info->clip_count,
         info->angle_count,
         info->chapter_count,
@@ -396,6 +440,89 @@ TitleInfo get_playlist_info(uint32_t idx) {
     unsigned angle = bd_get_current_angle(bd);
     BLURAY_TITLE_INFO* playlist = bd_get_playlist_info(bd, idx, angle);
     return convert_title_info(playlist);
+}
+
+EMSCRIPTEN_KEEPALIVE
+vector<TitleInfo> get_all_playlist_info() {
+    unsigned angle = bd_get_current_angle(bd);
+    uint32_t title_count = bd_get_titles(bd, NULL, NULL);
+
+    vector<TitleInfo> playlists;
+    for (int i = 0; i < title_count; i++) {
+        TitleInfo playlist = get_playlist_info(i);
+        playlists.push_back(playlist);
+    }
+    return playlists;
+}
+
+struct MetaThumbnail {
+    string           path;
+    uint32_t         xres;
+    uint32_t         yres;
+};
+
+struct MetaTitle {
+    uint32_t         title_number;
+    string           title_name;
+};
+
+struct MetaDiscLibrary {
+    string                language_code;
+    string                filename;
+    string                di_name;
+    string                di_alternative;
+    uint8_t               di_num_sets;
+    uint8_t               di_set_number;
+    uint32_t              toc_count;
+    vector<MetaTitle>     toc_entries;
+    uint8_t               thumb_count;
+    vector<MetaThumbnail> thumbnails;
+};
+
+MetaThumbnail convert_meta_thumbnail(META_THUMBNAIL* thumbnail) {
+    return MetaThumbnail({
+        thumbnail->path,
+        thumbnail->xres,
+        thumbnail->yres
+    });
+}
+
+MetaTitle convert_meta_title(META_TITLE* title) {
+    return MetaTitle({
+        title->title_number,
+        title->title_name
+    });
+}
+
+MetaDiscLibrary convert_meta_dl(const META_DL* dl) {
+    vector<MetaTitle> toc_entries;
+    for (int i = 0; i < dl->toc_count; i++) {
+        toc_entries.push_back(convert_meta_title(&dl->toc_entries[i]));
+    }
+
+    vector<MetaThumbnail> thumbnails;
+    for (int i = 0; i < dl->thumb_count; i++) {
+        thumbnails.push_back(convert_meta_thumbnail(&dl->thumbnails[i]));
+    }
+
+    return MetaDiscLibrary({
+        dl->language_code,
+        dl->filename,
+        dl->di_name,
+        dl->di_alternative,
+        dl->di_num_sets,
+        dl->di_set_number,
+        dl->toc_count,
+        toc_entries,
+        dl->thumb_count,
+        thumbnails
+    });
+}
+
+EMSCRIPTEN_KEEPALIVE
+MetaDiscLibrary get_metadata() {
+    const META_DL* dl = bd_get_meta(bd);
+    return convert_meta_dl(dl);
 }
 
 EMSCRIPTEN_BINDINGS(libbluray) {
@@ -475,20 +602,20 @@ EMSCRIPTEN_BINDINGS(libbluray) {
         .field("numObjects", &MObjObjects::num_objects)
         .field("objects", &MObjObjects::objects);
 
-    value_object<BLURAY_TITLE_MARK>("TitleMark")
-        .field("idx", &BLURAY_TITLE_MARK::idx)
-        .field("type", &BLURAY_TITLE_MARK::type)
-        .field("start", &BLURAY_TITLE_MARK::start)
-        .field("duration", &BLURAY_TITLE_MARK::duration)
-        .field("offset", &BLURAY_TITLE_MARK::offset)
-        .field("clipRef", &BLURAY_TITLE_MARK::clip_ref);
+    value_object<TitleMark>("TitleMark")
+        .field("idx", &TitleMark::idx)
+        .field("type", &TitleMark::type)
+        .field("start", &TitleMark::start)
+        .field("duration", &TitleMark::duration)
+        .field("offset", &TitleMark::offset)
+        .field("clipRef", &TitleMark::clip_ref);
 
-    value_object<BLURAY_TITLE_CHAPTER>("TitleChapter")
-        .field("idx", &BLURAY_TITLE_CHAPTER::idx)
-        .field("start", &BLURAY_TITLE_CHAPTER::start)
-        .field("duration", &BLURAY_TITLE_CHAPTER::duration)
-        .field("offset", &BLURAY_TITLE_CHAPTER::offset)
-        .field("clipRef", &BLURAY_TITLE_CHAPTER::clip_ref);
+    value_object<TitleChapter>("TitleChapter")
+        .field("idx", &TitleChapter::idx)
+        .field("start", &TitleChapter::start)
+        .field("duration", &TitleChapter::duration)
+        .field("offset", &TitleChapter::offset)
+        .field("clipRef", &TitleChapter::clip_ref);
 
     value_object<StreamInfo>("StreamInfo")
         .field("aspect", &StreamInfo::aspect)
@@ -523,8 +650,8 @@ EMSCRIPTEN_BINDINGS(libbluray) {
         .field("clipId", &ClipInfo::clip_id);
 
     register_vector<ClipInfo>("Clips");
-    register_vector<BLURAY_TITLE_CHAPTER>("Chapters");
-    register_vector<BLURAY_TITLE_MARK>("Marks");
+    register_vector<TitleChapter>("Chapters");
+    register_vector<TitleMark>("Marks");
     value_object<TitleInfo>("TitleInfo")
         .field("idx", &TitleInfo::idx)
         .field("playlist", &TitleInfo::playlist)
@@ -537,10 +664,37 @@ EMSCRIPTEN_BINDINGS(libbluray) {
         .field("chapters", &TitleInfo::chapters)
         .field("marks", &TitleInfo::marks)
         .field("MVCBaseViewRFlag", &TitleInfo::mvc_base_view_r_flag);
+
+    register_vector<TitleInfo>("TitleInfoVector");
+
+    value_object<MetaThumbnail>("MetaThumbnail")
+        .field("path", &MetaThumbnail::path)
+        .field("xres", &MetaThumbnail::xres)
+        .field("yres", &MetaThumbnail::yres);
+
+    value_object<MetaTitle>("MetaTitle")
+        .field("titleNumber", &MetaTitle::title_number)
+        .field("titleName", &MetaTitle::title_name);
+
+    register_vector<MetaTitle>("MetaTitleVector");
+    register_vector<MetaThumbnail>("MetaThumbnailVector");
+    value_object<MetaDiscLibrary>("MetaDiscLibrary")
+        .field("languageCode", &MetaDiscLibrary::language_code)
+        .field("filename", &MetaDiscLibrary::filename)
+        .field("diName", &MetaDiscLibrary::di_name)
+        .field("diAlternative", &MetaDiscLibrary::di_alternative)
+        .field("diNumSets", &MetaDiscLibrary::di_num_sets)
+        .field("diSetNumber", &MetaDiscLibrary::di_set_number)
+        .field("tocCount", &MetaDiscLibrary::toc_count)
+        .field("tocEntries", &MetaDiscLibrary::toc_entries)
+        .field("thumbCount", &MetaDiscLibrary::thumb_count)
+        .field("thumbnails", &MetaDiscLibrary::thumbnails);
         
     emscripten::function("version", &version);
     emscripten::function("openDisc", &open_disc);
     emscripten::function("getDiscInfo", &get_disc_info);
     emscripten::function("readMobj", &read_mobj);
     emscripten::function("getPlaylistInfo", &get_playlist_info);
+    emscripten::function("getAllPlaylistInfo", &get_all_playlist_info);
+    emscripten::function("getMetadata", &get_metadata);
 }

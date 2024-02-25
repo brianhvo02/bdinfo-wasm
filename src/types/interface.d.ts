@@ -5,6 +5,8 @@ interface WasmModule {
   __Z13get_disc_infov(_0: number): void;
   __Z9read_mobjNSt3__212basic_stringIcNS_11char_traitsIcEENS_9allocatorIcEEEE(_0: number, _1: number): void;
   __Z17get_playlist_infoj(_0: number, _1: number): void;
+  __Z21get_all_playlist_infov(_0: number): void;
+  __Z12get_metadatav(_0: number): void;
 }
 
 export interface BlurayTitles {
@@ -70,6 +72,33 @@ export interface Marks {
   delete(): void;
 }
 
+export interface TitleInfoVector {
+  size(): number;
+  get(_0: number): TitleInfo | undefined;
+  push_back(_0: TitleInfo): void;
+  resize(_0: number, _1: TitleInfo): void;
+  set(_0: number, _1: TitleInfo): boolean;
+  delete(): void;
+}
+
+export interface MetaTitleVector {
+  size(): number;
+  get(_0: number): MetaTitle | undefined;
+  push_back(_0: MetaTitle): void;
+  resize(_0: number, _1: MetaTitle): void;
+  set(_0: number, _1: MetaTitle): boolean;
+  delete(): void;
+}
+
+export interface MetaThumbnailVector {
+  size(): number;
+  get(_0: number): MetaThumbnail | undefined;
+  push_back(_0: MetaThumbnail): void;
+  resize(_0: number, _1: MetaThumbnail): void;
+  set(_0: number, _1: MetaThumbnail): boolean;
+  delete(): void;
+}
+
 export type MObjObject = {
   resumeIntentionFlag: boolean,
   menuCallMask: boolean,
@@ -105,37 +134,6 @@ export type MObjObjects = {
   objects: MObjObjectsVector
 };
 
-export type TitleMark = {
-  idx: number,
-  type: number,
-  start: bigint,
-  duration: bigint,
-  offset: bigint,
-  clipRef: number
-};
-
-export type TitleChapter = {
-  idx: number,
-  start: bigint,
-  duration: bigint,
-  offset: bigint,
-  clipRef: number
-};
-
-export type TitleInfo = {
-  idx: number,
-  playlist: number,
-  duration: bigint,
-  clipCount: number,
-  angleCount: number,
-  chapterCount: number,
-  markCount: number,
-  clips: Clips,
-  chapters: Chapters,
-  marks: Marks,
-  MVCBaseViewRFlag: number
-};
-
 export type BlurayTitle = {
   accessible: boolean,
   bdj: boolean,
@@ -143,6 +141,34 @@ export type BlurayTitle = {
   idRef: number,
   interactive: boolean,
   name: ArrayBuffer|Uint8Array|Uint8ClampedArray|Int8Array|string
+};
+
+export type TitleMark = {
+  idx: number,
+  type: number,
+  start: ArrayBuffer|Uint8Array|Uint8ClampedArray|Int8Array|string,
+  duration: ArrayBuffer|Uint8Array|Uint8ClampedArray|Int8Array|string,
+  offset: ArrayBuffer|Uint8Array|Uint8ClampedArray|Int8Array|string,
+  clipRef: number
+};
+
+export type TitleChapter = {
+  idx: number,
+  start: ArrayBuffer|Uint8Array|Uint8ClampedArray|Int8Array|string,
+  duration: ArrayBuffer|Uint8Array|Uint8ClampedArray|Int8Array|string,
+  offset: ArrayBuffer|Uint8Array|Uint8ClampedArray|Int8Array|string,
+  clipRef: number
+};
+
+export type StreamInfo = {
+  aspect: number,
+  charCode: number,
+  codingType: number,
+  format: number,
+  lang: ArrayBuffer|Uint8Array|Uint8ClampedArray|Int8Array|string,
+  pid: number,
+  rate: number,
+  subpathId: number
 };
 
 export type ClipInfo = {
@@ -161,10 +187,48 @@ export type ClipInfo = {
   igStreams: Streams,
   secondaryAudioStreams: Streams,
   secondaryVideoStreams: Streams,
-  startTime: bigint,
-  inTime: bigint,
-  outTime: bigint,
+  startTime: ArrayBuffer|Uint8Array|Uint8ClampedArray|Int8Array|string,
+  inTime: ArrayBuffer|Uint8Array|Uint8ClampedArray|Int8Array|string,
+  outTime: ArrayBuffer|Uint8Array|Uint8ClampedArray|Int8Array|string,
   clipId: ArrayBuffer|Uint8Array|Uint8ClampedArray|Int8Array|string
+};
+
+export type TitleInfo = {
+  idx: number,
+  playlist: number,
+  duration: ArrayBuffer|Uint8Array|Uint8ClampedArray|Int8Array|string,
+  clipCount: number,
+  angleCount: number,
+  chapterCount: number,
+  markCount: number,
+  clips: Clips,
+  chapters: Chapters,
+  marks: Marks,
+  MVCBaseViewRFlag: number
+};
+
+export type MetaThumbnail = {
+  path: ArrayBuffer|Uint8Array|Uint8ClampedArray|Int8Array|string,
+  xres: number,
+  yres: number
+};
+
+export type MetaTitle = {
+  titleNumber: number,
+  titleName: ArrayBuffer|Uint8Array|Uint8ClampedArray|Int8Array|string
+};
+
+export type MetaDiscLibrary = {
+  languageCode: ArrayBuffer|Uint8Array|Uint8ClampedArray|Int8Array|string,
+  filename: ArrayBuffer|Uint8Array|Uint8ClampedArray|Int8Array|string,
+  diName: ArrayBuffer|Uint8Array|Uint8ClampedArray|Int8Array|string,
+  diAlternative: ArrayBuffer|Uint8Array|Uint8ClampedArray|Int8Array|string,
+  diNumSets: number,
+  diSetNumber: number,
+  tocCount: number,
+  tocEntries: MetaTitleVector,
+  thumbCount: number,
+  thumbnails: MetaThumbnailVector
 };
 
 export type Info = {
@@ -202,17 +266,6 @@ export type Info = {
   titles: BlurayTitles
 };
 
-export type StreamInfo = {
-  aspect: number,
-  charCode: number,
-  codingType: number,
-  format: number,
-  lang: any,
-  pid: number,
-  rate: number,
-  subpathId: number
-};
-
 interface EmbindModule {
   BlurayTitles: {new(): BlurayTitles};
   MObjCommands: {new(): MObjCommands};
@@ -221,7 +274,12 @@ interface EmbindModule {
   Clips: {new(): Clips};
   Chapters: {new(): Chapters};
   Marks: {new(): Marks};
+  TitleInfoVector: {new(): TitleInfoVector};
+  MetaTitleVector: {new(): MetaTitleVector};
+  MetaThumbnailVector: {new(): MetaThumbnailVector};
+  getAllPlaylistInfo(): TitleInfoVector;
   getPlaylistInfo(_0: number): TitleInfo;
+  getMetadata(): MetaDiscLibrary;
   version(): string;
   openDisc(_0: ArrayBuffer|Uint8Array|Uint8ClampedArray|Int8Array|string): number;
   readMobj(_0: ArrayBuffer|Uint8Array|Uint8ClampedArray|Int8Array|string): MObjObjects;

@@ -2,19 +2,21 @@ import './App.scss';
 import { Route, Routes } from 'react-router-dom';
 import MovieObjects from './components/MovieObjects';
 import Header from './components/Header';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useAppDispatch, useAppSelector } from './store/hooks';
 import { selectDom, setLoading } from './store/dom';
-import { DiscInfoPayload, Message, MessageType, MovieObjectPayload } from './types/message';
-import { selectBluray, setDirname, setDiscInfo, setMovieObjects } from './store/bluray';
+import { DiscInfoPayload, Message, MessageType, MetadataPayload, MovieObjectPayload, PlaylistsPayload } from './types/message';
+import { selectBluray, setDirname, setDiscInfo, setMetadata, setMovieObjects, setPlaylists } from './store/bluray';
 import { Button, CircularProgress, Modal } from '@mui/material';
-import { boolAffirm, getFilesRecursively } from './util';
+import { boolAffirm, findLargestThumbnail, getFilesRecursively } from './util';
 
 const App = () => {
     const dispatch = useAppDispatch();
     const { loading } = useAppSelector(selectDom);
-    const { dirname, discInfo } = useAppSelector(selectBluray);
+    const { dirname, discInfo, metadata } = useAppSelector(selectBluray);
     const workerRef = useRef<Worker | null>(null);
+
+    const thumbnail = useMemo(() => metadata && findLargestThumbnail(metadata), [metadata]);
 
     const handleMessage = useCallback(<T extends MessageType, P>(
         { data: message }: MessageEvent<Message<T, P>>
@@ -32,6 +34,16 @@ const App = () => {
             case 'movieObject': {
                 const payload = message.payload as MovieObjectPayload;
                 dispatch(setMovieObjects(payload));
+                break;
+            }
+            case 'playlists': {
+                const payload = message.payload as PlaylistsPayload;
+                dispatch(setPlaylists(payload));
+                break;
+            }
+            case 'metadata': {
+                const payload = message.payload as MetadataPayload;
+                dispatch(setMetadata(payload));
                 break;
             }
             default:
@@ -98,31 +110,56 @@ const App = () => {
                     </Button>
                     { discInfo && <>
                     <h1>{dirname}</h1>
-                        {discInfo.blurayDetected ? <>
-                    <h2>AACS Detected</h2>
-                    <p>{boolAffirm(discInfo.aacsDetected)}</p>
-                    <h2>BDJO Detected</h2>
-                    <p>{boolAffirm(discInfo.bdjDetected)}</p>
-                        {discInfo.bdjDetected ? <>
-                    <h2>BDJO Title Count</h2>
-                    <p>{discInfo.numBDJTitles}</p>
-                        </> : null}
-                    <h2>HDMV Title Count</h2>
-                    <p>{discInfo.numHDMVTitles}</p>
-                        {discInfo.bdjDetected ? <>
-                    <h2>Total Title Count</h2>
-                    <p>{discInfo.numTitles}</p>
-                        </> : null}
-                        {discInfo.numUnsupportedTitles > 0 ? <>
-                    <h2>Unsupported Title Count</h2>
-                    <p>{discInfo.numUnsupportedTitles}</p>
-                        </> : null}
-                    <h2>First Play Supported</h2>
-                    <p>{boolAffirm(discInfo.firstPlaySupported)}</p>
-                    <h2>Top Menu Supported</h2>
-                    <p>{boolAffirm(discInfo.topMenuSupported)}</p>
-                        </> : <p>No Bluray detected!</p>}
+                    { discInfo.blurayDetected ? <>
+                    { discInfo.discName.length ? 
+                    <div className='attr-group'>
+                        <h2>Disc Name</h2>
+                        <p>{discInfo.discName}</p>
+                    </div>
+                    : null}
+                    <div className='attr-group'>
+                        <h2>AACS Detected</h2>
+                        <p>{boolAffirm(discInfo.aacsDetected)}</p>
+                    </div>
+                    <div className='attr-group'>
+                        <h2>BDJO Detected</h2>
+                        <p>{boolAffirm(discInfo.bdjDetected)}</p>
+                    </div>
+                    { discInfo.bdjDetected ? 
+                    <div className='attr-group'>
+                        <h2>BDJO Title Count</h2>
+                        <p>{discInfo.numBDJTitles}</p>
+                    </div>
+                    : null}
+                    <div className='attr-group'>
+                        <h2>HDMV Title Count</h2>
+                        <p>{ discInfo.numHDMVTitles}</p>
+                    </div>
+                    { discInfo.bdjDetected ?
+                    <div className='attr-group'>
+                        <h2>Total Title Count</h2>
+                        <p>{discInfo.numTitles}</p>
+                    </div>
+                    : null}
+                    { discInfo.numUnsupportedTitles > 0 ?
+                    <div className='attr-group'>
+                        <h2>Unsupported Title Count</h2>
+                        <p>{discInfo.numUnsupportedTitles}</p>
+                    </div>
+                    : null}
+                    <div className='attr-group'>
+                        <h2>First Play Supported</h2>
+                        <p>{boolAffirm(discInfo.firstPlaySupported)}</p>
+                    </div>
+                    <div className='attr-group'>
+                        <h2>Top Menu Supported</h2>
+                        <p>{boolAffirm(discInfo.topMenuSupported)}</p>
+                    </div>
+                    </> : <p>No Bluray detected!</p> }
                     </> }
+                    { thumbnail &&
+                    <img src={thumbnail.base64} alt='' width={thumbnail.xres} height={thumbnail.yres} />
+                    }
                 </div>
                 <Routes>
                     <Route path='/' Component={MovieObjects} />
