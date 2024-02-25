@@ -21,3 +21,8 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+wasm/build
+public/static/js
+public/static/py/*.whl
+.vscode

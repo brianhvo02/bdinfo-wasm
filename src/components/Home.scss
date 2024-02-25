@@ -1,0 +1,24 @@
+.home {
+    padding: 1rem;
+    color: white;
+
+    .disc-info {
+        h1 {
+            font-size: 1.5rem;
+            line-height: 2rem;
+            font-weight: 700;
+
+            margin-top: 1.5rem;
+        }
+        h2 {
+            font-size: 1rem;
+            line-height: 1.5rem;
+            font-weight: 500;
+
+            margin-top: 1rem;
+        }
+        p {
+            font-size: 1rem;
+        }
+    }
+}
