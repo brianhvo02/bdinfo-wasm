@@ -2,7 +2,8 @@
 import type { PyodideInterface } from 'pyodide';
 import { MainModule } from './types/interface';
 import { Message, MessageType, UploadPayload } from './types/message';
-import { convertDiscInfo, convertMetadata, convertMovieObject, convertTitleInfoMulti } from './util';
+import { convertDiscInfo, convertMetadata, convertMovieObject, convertPlaylists, convertVectorToArray } from './util';
+import _ from 'lodash';
 
 importScripts('./libbluray_web.js', 'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js');
 
@@ -23,15 +24,15 @@ const pyodideLoader = (loadPyodide({ packages: ['/static/py/pypng.whl', '/static
         pyodide.FS.mkdir('/mnt');
         console.log('Initialized menu reader');
         
-        return async (files: File[], menuIdx: number): Promise<Menu> => {
+        return async (files: File[], menuIndices: string[]) => {
             pyodide.FS.mount(pyodide.FS.filesystems.WORKERFS, { files }, '/mnt');
-            const res = await pyodide.runPythonAsync(
-                `extract_json_menu("/mnt/${`${
-                    menuIdx
-                }.m2ts`.padStart(10, '0')}")`
+            const menus: Menu[] = await Promise.all(
+                menuIndices.map(i => pyodide.runPythonAsync(
+                    `extract_json_menu("/mnt/${`${i}.m2ts`}")`
+                ).then(res => JSON.parse(res.toString())))
             );
             pyodide.FS.unmount('/mnt');
-            return JSON.parse(res.toString());
+            return _.zipObject(menuIndices, menus);
         }
     });
 
@@ -128,17 +129,31 @@ new Promise<MainModule>(resolve => {
                     payload: convertMovieObject(movieObjects)
                 });
 
-                const playlists = libbluray.getAllPlaylistInfo();
+                const playlistsRaw = libbluray.getAllPlaylists();
+                const playlists = convertPlaylists(playlistsRaw);
                 postMessage({
                     type: 'playlists',
-                    payload: convertTitleInfoMulti(playlists)
+                    payload: playlists
                 });
 
-                const metadata = libbluray.getMetadata();
+                const menus = new Set<string>();
 
+                playlists.forEach(playlist => {
+                    playlist.subPaths.forEach(subPath => {
+                        subPath.subPlayItems.forEach(item => {
+                            item.clips.forEach(clip => {
+                                menus.add(clip.clipId as string);
+                            });
+                        });
+                    });
+                });
+
+                pyodideLoader.then(extractMenu => extractMenu(streams, [...menus]))
+                    .then(payload => postMessage({ type: 'menus', payload }));
+
+                const metadata = libbluray.getMetadata();
                 convertMetadata(metadata)
                     .then(payload => postMessage({ type: 'metadata', payload }));
-                
 
                 break;
             default:

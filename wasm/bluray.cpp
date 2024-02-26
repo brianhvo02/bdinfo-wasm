@@ -1,10 +1,15 @@
 #include <emscripten/bind.h>
 #include <libbluray/bluray.h>
 #include <libbluray/hdmv/mobj_data.h>
+#include <libbluray/bdnav/mpls_data.h>
 #include <libbluray/bdnav/meta_data.h>
 #include <stdio.h>
 #include <sstream>
 #include <cstring>
+#include <set>
+#include <iostream>
+#include <filesystem>
+namespace fs = std::filesystem;
 
 using namespace emscripten;
 using namespace std;
@@ -253,208 +258,6 @@ MObjObjects read_mobj(string path) {
     return convert_objects(objs);
 }
 
-struct StreamInfo {
-    uint8_t  coding_type;
-    uint8_t  format;
-    uint8_t  rate;
-    uint8_t  char_code;
-    string   lang;
-    uint16_t pid;
-    uint8_t  aspect;
-    uint8_t  subpath_id;
-};
-
-struct ClipInfo {
-    uint32_t           pkt_count;
-    uint8_t            still_mode;
-    uint16_t           still_time;
-    uint8_t            video_stream_count;
-    uint8_t            audio_stream_count;
-    uint8_t            pg_stream_count;
-    uint8_t            ig_stream_count;
-    uint8_t            sec_audio_stream_count;
-    uint8_t            sec_video_stream_count;
-    vector<StreamInfo> video_streams;
-    vector<StreamInfo> audio_streams;
-    vector<StreamInfo> pg_streams;
-    vector<StreamInfo> ig_streams;
-    vector<StreamInfo> sec_audio_streams;
-    vector<StreamInfo> sec_video_streams;
-    string             start_time;
-    string             in_time;
-    string             out_time;
-    string             clip_id;
-};
-struct TitleChapter {
-    uint32_t    idx;
-    string      start;
-    string      duration;
-    string      offset;
-    unsigned    clip_ref;
-};
-
-struct TitleMark {
-    uint32_t    idx;
-    int         type;
-    string      start;
-    string      duration;
-    string      offset;
-    unsigned    clip_ref;
-};
-
-struct TitleInfo {
-    uint32_t             idx;
-    uint32_t             playlist;
-    string               duration;
-    uint32_t             clip_count;
-    uint8_t              angle_count;
-    uint32_t             chapter_count;
-    uint32_t             mark_count;
-    vector<ClipInfo>     clips;
-    vector<TitleChapter> chapters;
-    vector<TitleMark>    marks;
-    uint8_t              mvc_base_view_r_flag;
-};
-
-StreamInfo convert_stream_info(BLURAY_STREAM_INFO *info) {
-    return StreamInfo({
-        info->coding_type,
-        info->format,
-        info->rate,
-        info->char_code,
-        string((char *)info->lang),
-        info->pid,
-        info->aspect,
-        info->subpath_id
-    });
-}
-
-TitleChapter convert_title_chapter(BLURAY_TITLE_CHAPTER *chapter) {
-    return TitleChapter({
-        chapter->idx,
-        uint64_to_string(chapter->start),
-        uint64_to_string(chapter->duration),
-        uint64_to_string(chapter->offset),
-        chapter->clip_ref
-    });
-}
-
-TitleMark convert_title_mark(BLURAY_TITLE_MARK *mark) {
-    return TitleMark({
-        mark->idx,
-        mark->type,
-        uint64_to_string(mark->start),
-        uint64_to_string(mark->duration),
-        uint64_to_string(mark->offset),
-        mark->clip_ref
-    });
-}
-
-ClipInfo convert_clip_info(BLURAY_CLIP_INFO *info) {
-    vector<StreamInfo> video_streams;
-    for (int i = 0; i < info->video_stream_count; i++) {
-        video_streams.push_back(convert_stream_info(&info->video_streams[i]));
-    }
-
-    vector<StreamInfo> audio_streams;
-    for (int i = 0; i < info->audio_stream_count; i++) {
-        audio_streams.push_back(convert_stream_info(&info->audio_streams[i]));
-    }
-
-    vector<StreamInfo> pg_streams;
-    for (int i = 0; i < info->pg_stream_count; i++) {
-        pg_streams.push_back(convert_stream_info(&info->pg_streams[i]));
-    }
-
-    vector<StreamInfo> ig_streams;
-    for (int i = 0; i < info->ig_stream_count; i++) {
-        ig_streams.push_back(convert_stream_info(&info->ig_streams[i]));
-    }
-
-    vector<StreamInfo> sec_audio_streams;
-    for (int i = 0; i < info->sec_audio_stream_count; i++) {
-        sec_audio_streams.push_back(convert_stream_info(&info->sec_audio_streams[i]));
-    }
-
-    vector<StreamInfo> sec_video_streams;
-    for (int i = 0; i < info->sec_video_stream_count; i++) {
-        sec_video_streams.push_back(convert_stream_info(&info->sec_video_streams[i]));
-    }
-
-    return ClipInfo({
-        info->pkt_count,
-        info->still_mode,
-        info->still_time,
-        info->video_stream_count,
-        info->audio_stream_count,
-        info->pg_stream_count,
-        info->ig_stream_count,
-        info->sec_audio_stream_count,
-        info->sec_video_stream_count,
-        video_streams,
-        audio_streams,
-        pg_streams,
-        ig_streams,
-        sec_audio_streams,
-        sec_video_streams,
-        uint64_to_string(info->start_time),
-        uint64_to_string(info->in_time),
-        uint64_to_string(info->out_time),
-        info->clip_id
-    });
-}
-
-TitleInfo convert_title_info(BLURAY_TITLE_INFO *info) {
-    vector<ClipInfo> clips;
-    for (int i = 0; i < info->clip_count; i++) {
-        clips.push_back(convert_clip_info(&info->clips[i]));
-    }
-
-    vector<TitleChapter> chapters;
-    for (int i = 0; i < info->chapter_count; i++) {
-        chapters.push_back(convert_title_chapter(&info->chapters[i]));
-    }
-
-    vector<TitleMark> marks;
-    for (int i = 0; i < info->mark_count; i++) {
-        marks.push_back(convert_title_mark(&info->marks[i]));
-    }
-
-    return TitleInfo({
-        info->idx,
-        info->playlist,
-        uint64_to_string(info->duration),
-        info->clip_count,
-        info->angle_count,
-        info->chapter_count,
-        info->mark_count,
-        clips,
-        chapters,
-        marks,
-        info->mvc_base_view_r_flag
-    });
-}
-
-EMSCRIPTEN_KEEPALIVE
-TitleInfo get_playlist_info(uint32_t idx) {
-    unsigned angle = bd_get_current_angle(bd);
-    BLURAY_TITLE_INFO* playlist = bd_get_playlist_info(bd, idx, angle);
-    return convert_title_info(playlist);
-}
-
-EMSCRIPTEN_KEEPALIVE
-vector<TitleInfo> get_all_playlist_info() {
-    unsigned angle = bd_get_current_angle(bd);
-    uint32_t title_count = bd_get_titles(bd, NULL, NULL);
-
-    vector<TitleInfo> playlists;
-    for (int i = 0; i < title_count; i++) {
-        TitleInfo playlist = get_playlist_info(i);
-        playlists.push_back(playlist);
-    }
-    return playlists;
-}
-
 struct MetaThumbnail {
     string           path;
     uint32_t         xres;
@@ -523,6 +326,164 @@ EMSCRIPTEN_KEEPALIVE
 MetaDiscLibrary get_metadata() {
     const META_DL* dl = bd_get_meta(bd);
     return convert_meta_dl(dl);
+}
+
+struct Clip {
+    string          clip_id;
+    string          codec_id;
+};
+
+struct Stream {
+    uint8_t         stream_type;
+    uint8_t         coding_type;
+    uint16_t        pid;
+    uint8_t         subpath_id;
+    uint8_t         subclip_id;
+    uint8_t         format;
+    uint8_t         rate;
+    uint8_t         dynamic_range_type;
+    uint8_t         color_space;
+    uint8_t         cr_flag;
+    uint8_t         hdr_plus_flag;
+    uint8_t         char_code;
+    string          lang;
+};
+
+struct PlayItem {
+    uint32_t        in_time;
+    uint32_t        out_time;
+    Clip            clip;
+    vector<Stream>  video;
+    vector<Stream>  audio;
+    vector<Stream>  pg;
+    vector<Stream>  ig;
+    vector<Stream>  secondary_audio;
+    vector<Stream>  secondary_video;
+    vector<Stream>  dv;
+};
+
+struct SubPathPlayItem {
+    uint32_t        in_time;
+    uint32_t        out_time;
+    uint16_t        sync_play_item_id;
+    uint32_t        sync_pts;
+    vector<Clip>    clips;
+};
+
+struct SubPath {
+    uint8_t                 type;
+    vector<SubPathPlayItem> sub_play_items;
+};
+
+struct Playlist {
+    string           id;
+    vector<PlayItem> play_items;
+    vector<SubPath>  sub_paths;
+    vector<MPLS_PLM> play_marks;
+};
+
+vector<Stream> convert_streams(MPLS_STREAM* streams, uint8_t stream_count) {
+    vector<Stream> new_streams;
+    for (int i = 0; i < stream_count; i++) {
+        new_streams.push_back(Stream({
+            streams[i].stream_type,
+            streams[i].coding_type,
+            streams[i].pid,
+            streams[i].subpath_id,
+            streams[i].subclip_id,
+            streams[i].format,
+            streams[i].rate,
+            streams[i].dynamic_range_type,
+            streams[i].color_space,
+            streams[i].cr_flag,
+            streams[i].hdr_plus_flag,
+            streams[i].char_code,
+            streams[i].lang
+        }));
+    }
+
+    return new_streams;
+}
+
+vector<Clip> convert_clips(MPLS_CLIP* clip, uint8_t clip_count) {
+    vector<Clip> new_clips;
+    for (int i = 0; i < clip_count; i++) {
+        new_clips.push_back(Clip({
+            clip->clip_id,
+            clip->codec_id
+        }));
+    }
+
+    return new_clips;
+}
+
+vector<SubPathPlayItem> convert_sub_play_items(MPLS_SUB_PI* play_items, uint8_t pi_count) {
+    vector<SubPathPlayItem> new_play_items;
+    for (int i = 0; i < pi_count; i++) {
+        new_play_items.push_back(SubPathPlayItem({
+            play_items[i].in_time,
+            play_items[i].out_time,
+            play_items[i].sync_play_item_id,
+            play_items[i].sync_pts,
+            convert_clips(play_items[i].clip, play_items[i].clip_count)
+        }));
+    }
+
+    return new_play_items;
+}
+
+EMSCRIPTEN_KEEPALIVE
+Playlist get_playlist_info(string path) {
+    MPLS_PL* playlist = bd_read_mpls(path.c_str());
+
+    vector<PlayItem> play_items;
+    for (int i = 0; i < playlist->list_count; i++) {
+        MPLS_PI play_item = playlist->play_item[i];
+        play_items.push_back(PlayItem({
+            play_item.in_time,
+            play_item.out_time,
+            Clip({
+                play_item.clip->clip_id,
+                play_item.clip->codec_id
+            }),
+            convert_streams(play_item.stn.video, play_item.stn.num_video),
+            convert_streams(play_item.stn.audio, play_item.stn.num_audio),
+            convert_streams(play_item.stn.pg, play_item.stn.num_pg),
+            convert_streams(play_item.stn.ig, play_item.stn.num_ig),
+            convert_streams(play_item.stn.secondary_audio, play_item.stn.num_secondary_audio),
+            convert_streams(play_item.stn.secondary_video, play_item.stn.num_secondary_video),
+            convert_streams(play_item.stn.dv, play_item.stn.num_dv) 
+        }));
+    }
+
+    vector<SubPath> sub_paths;
+    for (int i = 0; i < playlist->sub_count; i++) {
+        MPLS_SUB sub_path = playlist->sub_path[i];
+        sub_paths.push_back(SubPath({
+            sub_path.type,
+            convert_sub_play_items(sub_path.sub_play_item, sub_path.sub_playitem_count)
+        }));
+    }
+    
+    vector<MPLS_PLM> play_marks;
+    copy(&playlist->play_mark[0], &playlist->play_mark[playlist->mark_count], back_inserter(play_marks));
+    
+    return Playlist({ path.substr(7, 5), play_items, sub_paths, play_marks });
+}
+
+EMSCRIPTEN_KEEPALIVE
+vector<Playlist> get_all_playlists() {
+    vector<Playlist> playlists;
+    for (const auto & entry : fs::directory_iterator("/files")) {
+        string path = entry.path();
+        if (path.find(".mpls") == string::npos)
+            continue;
+
+        Playlist pl = get_playlist_info(path);
+        playlists.push_back(pl);
+    }
+
+    return playlists;
 }
 
 EMSCRIPTEN_BINDINGS(libbluray) {
@@ -602,70 +563,68 @@ EMSCRIPTEN_BINDINGS(libbluray) {
         .field("numObjects", &MObjObjects::num_objects)
         .field("objects", &MObjObjects::objects);
 
-    value_object<TitleMark>("TitleMark")
-        .field("idx", &TitleMark::idx)
-        .field("type", &TitleMark::type)
-        .field("start", &TitleMark::start)
-        .field("duration", &TitleMark::duration)
-        .field("offset", &TitleMark::offset)
-        .field("clipRef", &TitleMark::clip_ref);
+    value_object<Clip>("Clip")
+        .field("clipId", &Clip::clip_id)
+        .field("codecId", &Clip::codec_id);
 
-    value_object<TitleChapter>("TitleChapter")
-        .field("idx", &TitleChapter::idx)
-        .field("start", &TitleChapter::start)
-        .field("duration", &TitleChapter::duration)
-        .field("offset", &TitleChapter::offset)
-        .field("clipRef", &TitleChapter::clip_ref);
+    value_object<Stream>("Stream")
+        .field("streamType", &Stream::stream_type)
+        .field("codingType", &Stream::coding_type)
+        .field("pid", &Stream::pid)
+        .field("subpathId", &Stream::subpath_id)
+        .field("subclipId", &Stream::subclip_id)
+        .field("format", &Stream::format)
+        .field("rate", &Stream::rate)
+        .field("dynamicRangeType", &Stream::dynamic_range_type)
+        .field("colorSpace", &Stream::color_space)
+        .field("crFlag", &Stream::cr_flag)
+        .field("hdrPlusFlag", &Stream::hdr_plus_flag)
+        .field("charCode", &Stream::char_code)
+        .field("lang", &Stream::lang);
 
-    value_object<StreamInfo>("StreamInfo")
-        .field("aspect", &StreamInfo::aspect)
-        .field("charCode", &StreamInfo::char_code)
-        .field("codingType", &StreamInfo::coding_type)
-        .field("format", &StreamInfo::format)
-        .field("lang", &StreamInfo::lang)
-        .field("pid", &StreamInfo::pid)
-        .field("rate", &StreamInfo::rate)
-        .field("subpathId", &StreamInfo::subpath_id);
+    register_vector<Stream>("Streams");
+    value_object<PlayItem>("PlayItem")
+        .field("inTime", &PlayItem::in_time)
+        .field("outTime", &PlayItem::out_time)
+        .field("clip", &PlayItem::clip)
+        .field("video", &PlayItem::video)
+        .field("audio", &PlayItem::audio)
+        .field("pg", &PlayItem::pg)
+        .field("ig", &PlayItem::ig)
+        .field("secondaryAudio", &PlayItem::secondary_audio)
+        .field("secondaryVideo", &PlayItem::secondary_video)
+        .field("dv", &PlayItem::dv);
 
-    register_vector<StreamInfo>("Streams");
-    value_object<ClipInfo>("ClipInfo")
-        .field("pktCount", &ClipInfo::pkt_count)
-        .field("stillMode", &ClipInfo::still_mode)
-        .field("stillTime", &ClipInfo::still_time)
-        .field("videoStreamCount", &ClipInfo::video_stream_count)
-        .field("audioStreamCount", &ClipInfo::audio_stream_count)
-        .field("PGStreamCount", &ClipInfo::pg_stream_count)
-        .field("IGStreamCount", &ClipInfo::ig_stream_count)
-        .field("secondaryVideoStreamCount", &ClipInfo::sec_video_stream_count)
-        .field("secondaryAudioStreamCount", &ClipInfo::sec_audio_stream_count)
-        .field("audioStreams", &ClipInfo::audio_streams)
-        .field("videoStreams", &ClipInfo::video_streams)
-        .field("pgStreams", &ClipInfo::pg_streams)
-        .field("igStreams", &ClipInfo::ig_streams)
-        .field("secondaryAudioStreams", &ClipInfo::sec_audio_streams)
-        .field("secondaryVideoStreams", &ClipInfo::sec_video_streams)
-        .field("startTime", &ClipInfo::start_time)
-        .field("inTime", &ClipInfo::in_time)
-        .field("outTime", &ClipInfo::out_time)
-        .field("clipId", &ClipInfo::clip_id);
+    register_vector<Clip>("Clips");
+    value_object<SubPathPlayItem>("SubPathPlayItem")
+        .field("inTime", &SubPathPlayItem::in_time)
+        .field("outTime", &SubPathPlayItem::out_time)
+        .field("syncPlayItemId", &SubPathPlayItem::sync_play_item_id)
+        .field("syncPts", &SubPathPlayItem::sync_pts)
+        .field("clips", &SubPathPlayItem::clips);
 
-    register_vector<ClipInfo>("Clips");
-    register_vector<TitleChapter>("Chapters");
-    register_vector<TitleMark>("Marks");
-    value_object<TitleInfo>("TitleInfo")
-        .field("idx", &TitleInfo::idx)
-        .field("playlist", &TitleInfo::playlist)
-        .field("duration", &TitleInfo::duration)
-        .field("clipCount", &TitleInfo::clip_count)
-        .field("angleCount", &TitleInfo::angle_count)
-        .field("chapterCount", &TitleInfo::chapter_count)
-        .field("markCount", &TitleInfo::mark_count)
-        .field("clips", &TitleInfo::clips)
-        .field("chapters", &TitleInfo::chapters)
-        .field("marks", &TitleInfo::marks)
-        .field("MVCBaseViewRFlag", &TitleInfo::mvc_base_view_r_flag);
+    register_vector<SubPathPlayItem>("SubPathPlayItems");
+    value_object<SubPath>("SubPath")
+        .field("type", &SubPath::type)
+        .field("subPlayItems", &SubPath::sub_play_items);
 
-    register_vector<TitleInfo>("TitleInfoVector");
+    value_object<MPLS_PLM>("PlayMark")
+        .field("markType", &MPLS_PLM::mark_type)
+        .field("playItemRef", &MPLS_PLM::play_item_ref)
+        .field("time", &MPLS_PLM::time)
+        .field("entryEsPid", &MPLS_PLM::entry_es_pid)
+        .field("duration", &MPLS_PLM::duration);
+
+    register_vector<PlayItem>("PlayItems");
+    register_vector<SubPath>("SubPaths");
+    register_vector<MPLS_PLM>("PlayMarks");
+    value_object<Playlist>("Playlist")
+        .field("id", &Playlist::id)
+        .field("playItems", &Playlist::play_items)
+        .field("subPaths", &Playlist::sub_paths)
+        .field("playMarks", &Playlist::play_marks);
+
+    register_vector<Playlist>("Playlists");
 
     value_object<MetaThumbnail>("MetaThumbnail")
         .field("path", &MetaThumbnail::path)
@@ -695,6 +654,6 @@ EMSCRIPTEN_BINDINGS(libbluray) {
     emscripten::function("getDiscInfo", &get_disc_info);
     emscripten::function("readMobj", &read_mobj);
     emscripten::function("getPlaylistInfo", &get_playlist_info);
-    emscripten::function("getAllPlaylistInfo", &get_all_playlist_info);
+    emscripten::function("getAllPlaylists", &get_all_playlists);
     emscripten::function("getMetadata", &get_metadata);
 }

@@ -1,0 +1,25 @@
+.streams {
+    display: grid;
+    grid-template-columns: repeat( auto-fit, minmax(20rem, 1fr));
+    row-gap: 2rem;
+    margin-top: 1rem;
+
+    .stream {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+}
+
+.chapters {
+    display: grid;
+    grid-template-columns: repeat( auto-fit, minmax(15rem, 1fr));
+    row-gap: 2rem;
+    margin-top: 1rem;
+
+    .chapter {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+}

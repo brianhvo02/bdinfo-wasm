@@ -1,13 +1,15 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import type { RootState } from '.';
-import { DiscInfo, Metadata, MovieObject, Title } from '../types/bluray';
+import { DiscInfo, Metadata, MovieObject, Playlist } from '../types/bluray';
+import { MenusPayload } from '../types/message';
 
 interface BlurayState {
     dirname: string;
     discInfo: DiscInfo | null;
     movieObjects: MovieObject[];
-    playlists: Title[];
+    playlists: Playlist[];
     metadata: Metadata | null;
+    menus: MenusPayload;
 }
 
 const initialState: BlurayState = {
@@ -16,6 +18,7 @@ const initialState: BlurayState = {
     movieObjects: [],
     playlists: [],
     metadata: null,
+    menus: {},
 }
 
 export const bluraySlice = createSlice({
@@ -31,11 +34,14 @@ export const bluraySlice = createSlice({
         setMovieObjects: (state, action: PayloadAction<MovieObject[]>) => {
             state.movieObjects = action.payload;
         },
-        setPlaylists: (state, action: PayloadAction<Title[]>) => {
+        setPlaylists: (state, action: PayloadAction<Playlist[]>) => {
             state.playlists = action.payload;
         },
         setMetadata: (state, action: PayloadAction<Metadata>) => {
             state.metadata = action.payload;
+        },
+        setMenus: (state, action: PayloadAction<MenusPayload>) => {
+            state.menus = action.payload;
         },
         reset: state => {
             state.discInfo = null;
@@ -43,7 +49,7 @@ export const bluraySlice = createSlice({
     }
 });
 
-export const { setDirname, setDiscInfo, setMovieObjects, setPlaylists, setMetadata } = bluraySlice.actions;
+export const { setDirname, setDiscInfo, setMovieObjects, setPlaylists, setMetadata, setMenus } = bluraySlice.actions;
 
 export const selectBluray = (state: RootState) => state.bluray;
 

@@ -1,12 +1,13 @@
 import './App.scss';
 import { Route, Routes } from 'react-router-dom';
-import MovieObjects from './components/MovieObjects';
 import Header from './components/Header';
+import MovieObjects from './components/MovieObjects';
+import Playlists from './components/Playlists';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useAppDispatch, useAppSelector } from './store/hooks';
 import { selectDom, setLoading } from './store/dom';
-import { DiscInfoPayload, Message, MessageType, MetadataPayload, MovieObjectPayload, PlaylistsPayload } from './types/message';
-import { selectBluray, setDirname, setDiscInfo, setMetadata, setMovieObjects, setPlaylists } from './store/bluray';
+import { DiscInfoPayload, MenusPayload, Message, MessageType, MetadataPayload, MovieObjectPayload, PlaylistsPayload } from './types/message';
+import { selectBluray, setDirname, setDiscInfo, setMenus, setMetadata, setMovieObjects, setPlaylists } from './store/bluray';
 import { Button, CircularProgress, Modal } from '@mui/material';
 import { boolAffirm, findLargestThumbnail, getFilesRecursively } from './util';
 
@@ -44,6 +45,11 @@ const App = () => {
             case 'metadata': {
                 const payload = message.payload as MetadataPayload;
                 dispatch(setMetadata(payload));
+                break;
+            }
+            case 'menus': {
+                const payload = message.payload as MenusPayload;
+                dispatch(setMenus(payload));
                 break;
             }
             default:
@@ -163,7 +169,7 @@ const App = () => {
                 </div>
                 <Routes>
                     <Route path='/' Component={MovieObjects} />
-                    {/* <Route path='/playlists' element={<Home worker={workerRef} />} /> */}
+                    <Route path='/playlists' Component={Playlists} />
                 </Routes>
             </main>
         </div>

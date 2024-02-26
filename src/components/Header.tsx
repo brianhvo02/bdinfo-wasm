@@ -18,10 +18,8 @@ const Header = () => {
             </div>
             { discInfo &&
             <nav>
-                <Link href='/' underline='hover'>Disc Info/Movie Objects</Link>
+                <Link href='/' underline='hover'>Movie Objects</Link>
                 <Link href='/playlists' underline='hover'>Playlists</Link>
-                <Link href='/clips' underline='hover'>Clips</Link>
-                <Link href='/menus' underline='hover'>Menus</Link>
             </nav>
             }
         </header>

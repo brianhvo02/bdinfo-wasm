@@ -1,5 +1,5 @@
-import { Clip, DiscInfo, Metadata, MovieObject, Title, Vector } from './types/bluray';
-import { ClipInfo, Info, MObjObjects, MetaDiscLibrary, TitleInfo } from './types/interface';
+import { DiscInfo, Metadata, MovieObject, Vector } from './types/bluray';
+import { Info, MObjObjects, MetaDiscLibrary, Playlist, Playlists } from './types/interface';
 
 export const convertVectorToArray = <T>(vector: Vector<T>) => 
     [...Array(vector.size()).keys()].map(i => vector.get(i) as T);
@@ -40,33 +40,31 @@ export const convertMovieObject = (obj: MObjObjects): MovieObject[] => {
     return objects;
 }
 
-export const convertClipInfo = (clip: ClipInfo): Clip => {
-    return {
-        ...clip,
-        audioStreams: convertVectorToArray(clip.audioStreams),
-        videoStreams: convertVectorToArray(clip.videoStreams),
-        igStreams: convertVectorToArray(clip.igStreams),
-        pgStreams: convertVectorToArray(clip.pgStreams),
-        secondaryAudioStreams: convertVectorToArray(clip.secondaryAudioStreams),
-        secondaryVideoStreams: convertVectorToArray(clip.secondaryVideoStreams)
-    }
-}
+export const convertPlaylist = ({ id, playItems, subPaths, playMarks }: Playlist) => ({
+    id,
+    playItems: convertVectorToArray(playItems)
+        .map(playItem => ({
+            ...playItem,
+            video: convertVectorToArray(playItem.video),
+            audio: convertVectorToArray(playItem.audio),
+            pg: convertVectorToArray(playItem.pg),
+            ig: convertVectorToArray(playItem.ig),
+            secondaryAudio: convertVectorToArray(playItem.secondaryAudio),
+            secondaryVideo: convertVectorToArray(playItem.secondaryVideo),
+            dv: convertVectorToArray(playItem.dv),
+        })),
+    subPaths: convertVectorToArray(subPaths)
+        .map(({ type, subPlayItems }) => ({ 
+            type, subPlayItems: convertVectorToArray(subPlayItems)
+                .map(({ clips, ...subPlayItem }) => ({
+                    ...subPlayItem, clips: convertVectorToArray(clips)
+                })) 
+        })),
+    playMarks: convertVectorToArray(playMarks),
+});
 
-export const convertTitleInfo = (title: TitleInfo): Title => {
-    return {
-        playlist: title.playlist,
-        duration: title.duration,
-        chapters: convertVectorToArray(title.chapters),
-        chapterCount: title.chapterCount,
-        marks: convertVectorToArray(title.marks),
-        markCount: title.markCount,
-        clips: convertVectorToArray(title.clips).map(convertClipInfo),
-        clipCount: title.clipCount
-    }
-}
-
-export const convertTitleInfoMulti = (info: Vector<TitleInfo>) => 
-    convertVectorToArray(info).map(convertTitleInfo);
+export const convertPlaylists = (playlists: Playlists) =>
+    convertVectorToArray(playlists).map(convertPlaylist);
 
 export const convertMetadata = async (meta: MetaDiscLibrary): Promise<Metadata> => {
     return {
@@ -108,3 +106,87 @@ export const findLargestThumbnail = (metadata: Metadata) =>
     metadata.thumbnails.length ? metadata.thumbnails.reduce(
         (t1, t2) => t1.xres * t1.yres > t2.xres * t2.yres ? t1 : t2
     ) : null;
+
+export const STREAM_MAP = {
+      1: 'MPEG-1 video',
+      2: 'MPEG-2 video',
+      3: 'MPEG-1 audio',
+      4: 'MPEG-2 audio',
+     27: 'Advanced Video Coding (AVC) / H.264 video',
+     36: 'High Efficiency Video Coding (HEVC) / H.265 video',
+    128: 'Linear pulse-code modulation (LPCM) audio',
+    129: 'Dolby AC-3 audio',
+    130: 'DTS Coherent Acoustics (DCA) audio',
+    131: 'Dolby TrueHD audio',
+    132: 'Dolby Digital Plus (DD+) / Enhanced AC-3 (E-AC-3) audio',
+    133: 'DTS-HD High Resolution audio',
+    134: 'DTS-HD Master (DTS-HD MA) audio',
+    144: 'Presentation Graphics (PG) stream',
+    145: 'Interactive Graphics (IG) stream',
+    146: 'Text stream',
+    161: 'Dolby Digital Plus (DD+) / Enhanced AC-3 (E-AC-3) secondary extension audio',
+    162: 'DTS-HD High Resolution secondary extension audio',
+    234: 'SMPTE 421 / VC-1 video',
+} as const;
+export type CodingType = keyof typeof STREAM_MAP;
+
+export const STREAM_TYPES = [
+    'video', 'audio', 'ig', 
+    'secondaryVideo', 'secondaryAudio', 'pg'
+] as const;
+export type StreamType = typeof STREAM_TYPES[number];
+
+export const VIDEO_FORMAT_MAP = {
+    1: '480i',
+    2: '576i',
+    3: '480p',
+    4: '1080i',
+    5: '720p',
+    6: '1080p',
+    7: '576p',
+    8: '2160p',
+}
+export type VideoFormatType = keyof typeof VIDEO_FORMAT_MAP;
+
+export const AUDIO_FORMAT_MAP = {
+     1: 'Mono',
+     3: 'Stereo',
+     6: 'Multichannel',
+    12: 'Combination',
+}
+export type AudioFormatType = keyof typeof AUDIO_FORMAT_MAP;
+
+export const VIDEO_RATE_MAP = {
+    1: '24000/1001 FPS',
+    2:         '24 FPS',
+    3:         '25 FPS',
+    4: '30000/1001 FPS',
+    6:         '50 FPS',
+    7: '60000/1001 FPS',
+}
+export type VideoRateType = keyof typeof VIDEO_RATE_MAP;
+
+export const AUDIO_RATE_MAP = {
+     1:  '48 kHz',
+     4:  '96 kHz',
+     5: '192 kHz',
+    12: '192 kHz Combination',
+    14:  '96 kHz Combination',
+}
+export type AudioRateType = keyof typeof AUDIO_RATE_MAP;
+
+export const ASPECT_RATIO_MAP = {
+    2:  '4:3 standard',
+    3:  '16:9 widescreen',
+}
+export type AspectRatioType = keyof typeof ASPECT_RATIO_MAP;
+
+// Takes in 90kHz value
+export const convertToTimestamp = (val: number) => {
+    const ms = Math.floor(val / 45 % 1000).toString().padStart(3, '0');
+    const s = Math.floor(val / (45 * 1000) % 60).toString().padStart(2, '0');
+    const m = Math.floor(val / (45 * 1000 * 60) % 60).toString().padStart(2, '0');
+    const h = Math.floor(val / (45 * 1000 * 60 * 60) % 60).toString().padStart(2, '0');
+
+    return `${h}:${m}:${s}.${ms}`;
+}

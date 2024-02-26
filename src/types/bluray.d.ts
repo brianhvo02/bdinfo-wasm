@@ -1,4 +1,4 @@
-import { BlurayTitle, ClipInfo, Info, MObjCommand, MObjObject, MetaDiscLibrary, MetaThumbnail, MetaTitle, StreamInfo, TitleChapter, TitleInfo, TitleMark } from './interface';
+import { BlurayTitle, PlayItem as IPlayItem, Info, MObjCommand, MObjObject, MetaDiscLibrary, MetaThumbnail, MetaTitle, Stream, SubPathPlayItem as ISubPathPlayItem, Clip, PlayMark } from './interface';
 
 export interface Vector<T> {
     size(): number;
@@ -29,23 +29,30 @@ export type MovieObject = Omit<MObjObject, 'numCommands' | 'commands'> & {
     commands: Command[];
 }
 
-export type Clip = Omit<ClipInfo, 
-    'audioStreams' | 'videoStreams' | 
-    'igStreams' | 'pgStreams' | 
-    'secondaryAudioStreams' | 'secondaryVideoStreams'
-> & {
-    audioStreams: Stream[];
-    videoStreams: Stream[];
-    igStreams: Stream[];
-    pgStreams: Stream[];
-    secondaryAudioStreams: Stream[];
-    secondaryVideoStreams: Stream[];
+export type PlayItem = Pick<IPlayItem, 'inTime' | 'outTime' | 'clip'> & {
+    video: Stream[];
+    audio: Stream[];
+    pg: Stream[];
+    ig: Stream[];
+    secondaryAudio: Stream[];
+    secondaryVideo: Stream[];
+    dv: Stream[];
 }
 
-export type Title = Pick<TitleInfo, 'playlist' | 'duration' | 'chapterCount' | 'markCount' | 'clipCount'> & {
-    chapters: TitleChapter[];
-    marks: TitleMark[];
+export type SubPathPlayItem = Omit<ISubPathPlayItem, 'clips'> & {
     clips: Clip[];
+}
+
+export type SubPath = {
+    type: number;
+    subPlayItems: SubPathPlayItem[];
+}
+
+export type Playlist = {
+    id: string;
+    playItems: PlayItem[];
+    subPaths: SubPath[];
+    playMarks: PlayMark[];
 }
 
 export type Thumbnail = MetaThumbnail & {

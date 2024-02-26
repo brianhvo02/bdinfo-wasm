@@ -13,7 +13,7 @@ const MovieObjects = () => {
     const [pagination, setPagination] = useState({
         pageIndex: 0,
         pageSize: 10,
-    })
+    });
     const columnHelper = createColumnHelper<Command>();
     const table = useReactTable({
         state: { pagination },
@@ -138,7 +138,10 @@ const MovieObjects = () => {
     return (
         <Box sx={{ flex: 1 }} className='movie-objects'>
             <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                <Tabs value={mobjIdx} onChange={(_, val) => setMobjIdx(val)}>
+                <Tabs value={mobjIdx} onChange={(_, val) => {
+                    setMobjIdx(val);
+                    setPagination(prev => ({ ...prev, pageIndex: 0 }));
+                }}>
                     { movieObjects.map((_, i) => 
                     <Tab key={`tab_${i}`} label={`Object ${i + 1}`} />) }
                 </Tabs>
