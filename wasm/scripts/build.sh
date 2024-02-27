@@ -63,7 +63,7 @@ pip wheel ./pypng
 pip install ./pypng
 
 git clone https://github.com/SAPikachu/igstools.git
-pip wheel --find-links=../../public/static/py ./igstools
+pip wheel --find-links=. ./igstools
 
 cp *.whl ../../public/static/py
 deactivate

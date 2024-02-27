@@ -25,8 +25,11 @@
         "build": "react-scripts build",
         "test": "react-scripts test",
         "eject": "react-scripts eject",
-        "wasm:build": "cd wasm && sh build.sh && sh compile.sh",
-        "wasm:compile": "cd wasm && sh compile.sh"
+        "local:build": "cd wasm && sh ./scripts/build.sh && sh ./scripts/compile.sh",
+        "local:compile": "cd wasm && sh ./scripts/compile.sh",
+        "local:cleanup": "rm -rf wasm/build public/static/js/* public/static/py/*.whl",
+        "docker:build": "sh ./wasm/scripts/docker_build.sh",
+        "docker:compile": "sh ./wasm/scripts/docker_compile.sh"
     },
     "eslintConfig": {
         "extends": [
