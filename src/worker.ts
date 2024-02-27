@@ -2,18 +2,10 @@
 import type { PyodideInterface } from 'pyodide';
 import { MainModule } from './types/interface';
 import { Message, MessageType, UploadPayload } from './types/message';
-import { convertDiscInfo, convertMetadata, convertMovieObject, convertPlaylists, convertVectorToArray } from './util';
+import { convertDiscInfo, convertMetadata, convertMovieObject, convertPlaylists } from './util';
 import _ from 'lodash';
 
 importScripts('./libbluray_web.js', 'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js');
-
-// @ts-ignore
-// const pyodide: PyodideInterface = await loadPyodide({
-//     // packages: []
-// });
-
-// const mountDir = '/mnt';
-// pyodide.FS.mkdir(mountDir);
 
 // @ts-ignore
 const pyodideLoader = (loadPyodide({ packages: ['/static/py/pypng.whl', '/static/py/igstools.whl'] }) as Promise<PyodideInterface>)
@@ -70,7 +62,6 @@ const mountFileSystem = (streams: File[], payload: UploadPayload) => {
 
     // @ts-ignore
     FS.mount(WORKERFS, { files }, '/files');
-
     
     for (let i = 0; i <= maxLen; i++) {
         payload.forEach(([paths, file]) => {
