@@ -1,6 +1,6 @@
 import { DiscInfo, Metadata, MovieObject, Playlist } from './bluray';
 
-export type MessageType = 'ready' | 'upload' | 'discInfo' | 'movieObject' | 'playlists' | 'metadata' | 'menus';
+export type MessageType = 'ready' | 'upload' | 'discInfo' | 'movieObject' | 'playlists' | 'metadata' | 'menus' | 'audio';
 
 export interface Message<T extends MessageType, P extends any> {
     type: T;

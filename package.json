@@ -27,7 +27,7 @@
         "eject": "react-scripts eject",
         "local:build": "cd wasm && sh ./scripts/build.sh && sh ./scripts/compile.sh",
         "local:compile": "cd wasm && sh ./scripts/compile.sh",
-        "local:cleanup": "rm -rf wasm/build public/static/js/* public/static/py/*.whl",
+        "local:cleanup": "rm -rf wasm/build public/static/js/* public/static/py/*.whl build",
         "docker:build": "sh ./wasm/scripts/docker_build.sh",
         "docker:compile": "sh ./wasm/scripts/docker_compile.sh"
     },

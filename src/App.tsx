@@ -7,7 +7,7 @@ import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useAppDispatch, useAppSelector } from './store/hooks';
 import { selectDom, setLoading } from './store/dom';
 import { DiscInfoPayload, MenusPayload, Message, MessageType, MetadataPayload, MovieObjectPayload, PlaylistsPayload } from './types/message';
-import { selectBluray, setDirname, setDiscInfo, setMenus, setMetadata, setMovieObjects, setPlaylists } from './store/bluray';
+import { reset, selectBluray, setDirname, setDiscInfo, setMenus, setMetadata, setMovieObjects, setPlaylists } from './store/bluray';
 import { Button, CircularProgress, Modal } from '@mui/material';
 import { boolAffirm, findLargestThumbnail, getFilesRecursively } from './util';
 
@@ -52,6 +52,16 @@ const App = () => {
                 dispatch(setMenus(payload));
                 break;
             }
+            case 'audio': {
+                const payload = message.payload as Uint8Array;
+                const blob = new Blob([payload], { type: "audio/wav" });
+                const audio = new Audio(window.URL.createObjectURL(blob));
+                audio.addEventListener('canplay', e => {
+                    console.log('Playing audio');
+                    audio.play();
+                });
+                break;
+            }
             default:
                 console.log(message);
         }
@@ -77,6 +87,7 @@ const App = () => {
             files.push(file);
         }
 
+        dispatch(reset());
         workerRef.current.postMessage({ type: 'upload', payload: files });
     }
 

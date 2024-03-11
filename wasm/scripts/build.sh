@@ -39,7 +39,7 @@ cd ..
 
 git clone https://gitlab.gnome.org/GNOME/libxml2.git
 cd libxml2
-emconfigure ./autogen.sh --with-http=no --with-ftp=no --with-python=no --with-threads=no
+emconfigure ./autogen.sh --with-http=no --with-ftp=no --with-python=no --with-threads=no --enable-static
 emmake make
 cd ..
 
@@ -65,5 +65,6 @@ pip install ./pypng
 git clone https://github.com/SAPikachu/igstools.git
 pip wheel --find-links=. ./igstools
 
-cp *.whl ../../public/static/py
+cp pypng-*.whl ../../public/static/py/pypng.whl
+cp igstools-*.whl ../../public/static/py/igstools.whl
 deactivate

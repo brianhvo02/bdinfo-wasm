@@ -10,6 +10,7 @@ interface BlurayState {
     playlists: Playlist[];
     metadata: Metadata | null;
     menus: MenusPayload;
+    menuImages: Record<string, Record<string, Record<string, HTMLImageElement>>> | null;
 }
 
 const initialState: BlurayState = {
@@ -19,6 +20,7 @@ const initialState: BlurayState = {
     playlists: [],
     metadata: null,
     menus: {},
+    menuImages: null,
 }
 
 export const bluraySlice = createSlice({
@@ -43,13 +45,13 @@ export const bluraySlice = createSlice({
         setMenus: (state, action: PayloadAction<MenusPayload>) => {
             state.menus = action.payload;
         },
-        reset: state => {
-            state.discInfo = null;
+        reset: () => {
+            return initialState;
         }
     }
 });
 
-export const { setDirname, setDiscInfo, setMovieObjects, setPlaylists, setMetadata, setMenus } = bluraySlice.actions;
+export const { setDirname, setDiscInfo, setMovieObjects, setPlaylists, setMetadata, setMenus, reset } = bluraySlice.actions;
 
 export const selectBluray = (state: RootState) => state.bluray;
 

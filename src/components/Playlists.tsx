@@ -5,6 +5,7 @@ import { selectBluray } from '../store/bluray';
 import { useMemo, useState } from 'react';
 import { AUDIO_FORMAT_MAP, AUDIO_RATE_MAP, AudioFormatType, AudioRateType, CodingType, STREAM_MAP, STREAM_TYPES, VIDEO_FORMAT_MAP, VIDEO_RATE_MAP, VideoFormatType, VideoRateType, convertToTimestamp } from '../util';
 import { StreamProps } from '../types/props';
+import MenuView from './MenuView';
 
 const Stream = ({ 
     stream: { codingType, pid, format, rate, lang },
@@ -53,6 +54,7 @@ const Playlists = () => {
     const [page, setPage] = useState(1);
     const [playlistIdx, setPlaylistIdx] = useState(0);
     const [tabIdx, setTabIdx] = useState(0);
+    const [menuPageCount, setMenuPageCount] = useState(0);
 
     const menuClipId = useMemo(() => 
         playlists.length &&
@@ -81,11 +83,14 @@ const Playlists = () => {
                         return <MenuItem key={file} value={i}>{file}</MenuItem>;
                     }) }
                 </Select>
-                { tabIdx === 0 &&
+                { (tabIdx === 0 || (tabIdx === 2 && menuClipId && menuPageCount > 0)) &&
                 <Pagination
                     sx={{ mt: 3 }}
                     color='primary'
-                    count={playlists[playlistIdx][tabs[tabIdx]].length} 
+                    count={ tabIdx === 0 ?
+                        playlists[playlistIdx][tabs[tabIdx]].length :
+                        menuPageCount
+                    } 
                     page={page} 
                     onChange={(_, p) => setPage(p)}
                 />
@@ -130,7 +135,11 @@ const Playlists = () => {
             { tabIdx === 2 && (
                 menuClipId ? (
                     menus[menuClipId] ? <>
-                        <h1>{menuClipId}</h1>
+                        <MenuView 
+                            clipId={menuClipId} 
+                            page={page}
+                            setMenuPageCount={setMenuPageCount}
+                        />
                     </> : <h1>Menu not yet loaded.</h1>
                 ) : <h1>No sub paths for this playlist.</h1>
             ) }

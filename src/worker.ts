@@ -55,6 +55,7 @@ const mountFileSystem = (streams: File[], payload: UploadPayload) => {
     try {
         FS.mkdir('/files');
         FS.mkdir('/mnt');
+        FS.mkdir('/output');
     } catch (e) {
         FS.unmount('/files');
         recursiveUnlink('/mnt');
@@ -145,6 +146,15 @@ new Promise<MainModule>(resolve => {
                 const metadata = libbluray.getMetadata();
                 convertMetadata(metadata)
                     .then(payload => postMessage({ type: 'metadata', payload }));
+
+                console.log('Extracting audio');
+                libbluray.extractAudio('00001', 4352);
+
+                // console.log('Loading audio');
+                // postMessage({
+                //     type: 'audio',
+                //     payload: FS.readFile('/output/00001_4352.wav')
+                // });
 
                 break;
             default:
