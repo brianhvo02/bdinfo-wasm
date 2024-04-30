@@ -26,18 +26,18 @@ const initialMemory = {
     '80000002': '00000000',
 };
 
-const MenuView = ({ clipId, page, setMenuPageCount }: MenuViewProps) => {
+const MenuView = ({ backgroundId, clipId, page, setMenuPageCount }: MenuViewProps) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const { menus } = useAppSelector(selectBluray);
+    const { menus, menuBackgrounds } = useAppSelector(selectBluray);
     const [selected, setSelected] = useState(0);
     const [focused, setFocused] = useState(false);
     const [gallery, setGallery] = useState<Gallery>();
 
     const memoryRef = useRef<Record<string, string>>(initialMemory);
 
-    const runCommand = (command: [number, number, number]) => {
-        const [, dstInt, srcInt] = command;
-        const [ins, dstHex, srcHex] = command.map(val => val.toString(16));
+    // const runCommand = (command: [number, number, number]) => {
+    //     const [, dstInt, srcInt] = command;
+    //     const [ins, dstHex, srcHex] = command.map(val => val.toString(16));
         // console.log('title', program.titleIdx, program.idx, opc, dst, src);
 
         // switch (ins) {
@@ -97,7 +97,7 @@ const MenuView = ({ clipId, page, setMenuPageCount }: MenuViewProps) => {
         //     default:
         //         setProgram(prev => prev && { ...prev, idx: prev.idx + 1 });
         // }
-    }
+    // }
 
     const menu = useMemo(() => menus[clipId], [menus, clipId]);
     const menuPage = useMemo(() => menu.pages[page - 1], [menu, page]);
@@ -138,8 +138,6 @@ const MenuView = ({ clipId, page, setMenuPageCount }: MenuViewProps) => {
         if (!menuPage || !ctx || !gallery) return;
 
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-        ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
         menuPage.bogs.forEach(bog => {
             const defaultButton = bog.buttons.find(button => button.id === bog.def_button);
@@ -180,7 +178,8 @@ const MenuView = ({ clipId, page, setMenuPageCount }: MenuViewProps) => {
     return (
         <div className='menu-view'>
             <p>{focused && 'Focused'}</p>
-            <canvas  tabIndex={0}
+            <img src={menuBackgrounds[backgroundId]} alt='menu background' />
+            <canvas tabIndex={0}
                 onFocus={() => setFocused(true)} 
                 onBlur={() => setFocused(false)} 
                 ref={canvasRef} 

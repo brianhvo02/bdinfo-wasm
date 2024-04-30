@@ -1,5 +1,22 @@
 .menu-view {
+    position: relative;
+
+    img {
+        width: 100%;
+    }
+
+    p {
+        position: absolute;
+        top: 0;
+        left: 0;
+
+        color: black;
+    }
+
     canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
         width: 100%;
     }
 }

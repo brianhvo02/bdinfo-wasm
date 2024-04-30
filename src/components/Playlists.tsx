@@ -136,6 +136,7 @@ const Playlists = () => {
                 menuClipId ? (
                     menus[menuClipId] ? <>
                         <MenuView 
+                            backgroundId={playlists[playlistIdx].playItems[0].clip.clipId as string}
                             clipId={menuClipId} 
                             page={page}
                             setMenuPageCount={setMenuPageCount}

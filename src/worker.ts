@@ -5,12 +5,14 @@ import { convertDiscInfo, convertMetadata, convertMovieObject, convertPlaylists 
 import _ from 'lodash';
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 import libblurayLoader from './libbluray.js';
+import { FFFSType } from '@ffmpeg/ffmpeg/dist/esm/types.js';
 
 interface ILibbluray extends MainModule {
     FS: typeof FS;
 }
 
 type IMenuExtractor = (files: File[], menuIndices: string[]) => Promise<Record<string, Menu>>;
+type IBackgroundExtractor = (files: File[], clipIndices: string[]) => Promise<Record<string, string>>;
 
 const menuExtractorLoader = async () => {
     const pyodide = await loadPyodide();
@@ -29,27 +31,57 @@ const menuExtractorLoader = async () => {
             ).then(res => JSON.parse(res.toString())))
         );
         pyodide.FS.unmount('/mnt');
+
         return _.zipObject(menuIndices, menus);
     }
 };
 
-const ffmpegLoader = async () => {
+const backgroundExtractorLoader = async () => {
     const ffmpeg = new FFmpeg();
     await ffmpeg.load({
         coreURL: '/static/js/ffmpeg-core.js'
     });
 
+    // ffmpeg.on('log', ({ message }) => console.log(message));
+
     console.log('Loaded ffmpeg.wasm');
 
-    return ffmpeg;
+    return async (files: File[], clipIndices: string[]): Promise<Record<string, string>> => {
+        await ffmpeg.createDir('/mnt');
+        await ffmpeg.mount('WORKERFS' as FFFSType, { files }, '/mnt');
+        
+        const fileMap: Record<string, string> = {};
+        for (const clip of clipIndices) {
+            const frame = clip + '.png';
+            await ffmpeg.exec([
+                '-ss', '15' ,
+                '-i', `/mnt/${clip}.m2ts`,
+                '-map', '0:v', 
+                '-update', 'true' ,
+                '-frames:v', '1', 
+                frame
+            ]);
+
+            const file = await ffmpeg.readFile(frame);
+            if (typeof file === 'string')
+                continue;
+
+            const url = URL.createObjectURL(new Blob([file.buffer], { type: 'image/png' }));
+
+            console.log('Extracted background from', clip);
+            fileMap[clip] = url;
+        }
+
+        return fileMap;
+    };
 };
 
 const [ 
-    libbluray,          menuExtractor,          ffmpeg 
+    libbluray,          menuExtractor,          backgroundExtractor 
 ]: [
-    ILibbluray,         IMenuExtractor,         FFmpeg
+    ILibbluray,         IMenuExtractor,         IBackgroundExtractor
 ] = await Promise.all([
-    libblurayLoader(),  menuExtractorLoader(),  ffmpegLoader()
+    libblurayLoader(),  menuExtractorLoader(),  backgroundExtractorLoader()
 ]);
 
 const recursiveUnlink = (path: string) => {
@@ -144,8 +176,13 @@ onmessage = <T extends MessageType, P>({ data: message }: MessageEvent<Message<T
             });
 
             const menus = new Set<string>();
+            const backgroundIds = new Set<string>();
 
             playlists.forEach(playlist => {
+                if (playlist.subPaths.length) {
+                    backgroundIds.add(playlist.playItems[0].clip.clipId as string);
+                }
+
                 playlist.subPaths.forEach(subPath => {
                     subPath.subPlayItems.forEach(item => {
                         item.clips.forEach(clip => {
@@ -160,9 +197,15 @@ onmessage = <T extends MessageType, P>({ data: message }: MessageEvent<Message<T
                 .then(payload => postMessage({ type: 'metadata', payload }));
 
             menuExtractor(streams, [...menus])
-                .then((payload: Record<string, Menu>) => {
-                    console.log(Object.keys(payload).length + ' titles extracted');
+                .then(payload => {
+                    console.log(Object.keys(payload).length + ' menus extracted');
                     postMessage({ type: 'menus', payload });
+                });
+
+            backgroundExtractor(streams, [...backgroundIds])
+                .then(payload => {
+                    console.log(Object.keys(payload).length + ' menu backgrounds extracted');
+                    postMessage({ type: 'menuBackgrounds', payload });
                 });
 
             break;

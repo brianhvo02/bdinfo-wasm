@@ -1,3 +1,7 @@
+interface MenuWithBackground extends Menu {
+    background: string;
+}
+
 interface Menu {
     version: number;
     pictures: Record<string, Picture>;

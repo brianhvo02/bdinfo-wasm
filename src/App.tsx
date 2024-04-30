@@ -6,8 +6,8 @@ import Playlists from './components/Playlists';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useAppDispatch, useAppSelector } from './store/hooks';
 import { selectDom, setLoading } from './store/dom';
-import { DiscInfoPayload, MenusPayload, Message, MessageType, MetadataPayload, MovieObjectPayload, PlaylistsPayload } from './types/message';
-import { reset, selectBluray, setDirname, setDiscInfo, setMenus, setMetadata, setMovieObjects, setPlaylists } from './store/bluray';
+import { DiscInfoPayload, MenuBackgroundsPayload, MenusPayload, Message, MessageType, MetadataPayload, MovieObjectPayload, PlaylistsPayload } from './types/message';
+import { reset, selectBluray, setDirname, setDiscInfo, setMenuBackgrounds, setMenus, setMetadata, setMovieObjects, setPlaylists } from './store/bluray';
 import { Button, CircularProgress, Modal } from '@mui/material';
 import { boolAffirm, findLargestThumbnail, getFilesRecursively } from './util';
 import { showDirectoryPicker } from 'file-system-access';
@@ -51,6 +51,11 @@ const App = () => {
             case 'menus': {
                 const payload = message.payload as MenusPayload;
                 dispatch(setMenus(payload));
+                break;
+            }
+            case 'menuBackgrounds': {
+                const payload = message.payload as MenuBackgroundsPayload;
+                dispatch(setMenuBackgrounds(payload));
                 break;
             }
             default:

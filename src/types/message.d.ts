@@ -1,6 +1,6 @@
 import { DiscInfo, Metadata, MovieObject, Playlist } from './bluray';
 
-export type MessageType = 'ready' | 'upload' | 'discInfo' | 'movieObject' | 'playlists' | 'metadata' | 'menus' | 'audio';
+export type MessageType = 'ready' | 'upload' | 'discInfo' | 'movieObject' | 'playlists' | 'metadata' | 'menus' | 'menuBackgrounds';
 
 export interface Message<T extends MessageType, P extends any> {
     type: T;
@@ -24,3 +24,6 @@ export type MetadataMessage = Message<'metadata', MetadataPayload>;
 
 export type MenusPayload = Record<string, Menu>;
 export type MenusMessage = Message<'menus', MenusPayload>;
+
+export type MenuBackgroundsPayload = Record<string, string>;
+export type MenuBackgroundsMessage = Message<'menuBackgrounds', MenuBackgroundsPayload>;

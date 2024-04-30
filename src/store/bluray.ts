@@ -1,7 +1,7 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import type { RootState } from '.';
 import { DiscInfo, Metadata, MovieObject, Playlist } from '../types/bluray';
-import { MenusPayload } from '../types/message';
+import { MenuBackgroundsPayload, MenusPayload } from '../types/message';
 
 interface BlurayState {
     dirname: string;
@@ -10,6 +10,7 @@ interface BlurayState {
     playlists: Playlist[];
     metadata: Metadata | null;
     menus: MenusPayload;
+    menuBackgrounds: MenuBackgroundsPayload;
     menuImages: Record<string, Record<string, Record<string, HTMLImageElement>>> | null;
 }
 
@@ -20,6 +21,7 @@ const initialState: BlurayState = {
     playlists: [],
     metadata: null,
     menus: {},
+    menuBackgrounds: {},
     menuImages: null,
 }
 
@@ -45,13 +47,16 @@ export const bluraySlice = createSlice({
         setMenus: (state, action: PayloadAction<MenusPayload>) => {
             state.menus = action.payload;
         },
+        setMenuBackgrounds: (state, action: PayloadAction<MenuBackgroundsPayload>) => {
+            state.menuBackgrounds = action.payload;
+        },
         reset: () => {
             return initialState;
         }
     }
 });
 
-export const { setDirname, setDiscInfo, setMovieObjects, setPlaylists, setMetadata, setMenus, reset } = bluraySlice.actions;
+export const { setDirname, setDiscInfo, setMovieObjects, setPlaylists, setMetadata, setMenus, reset, setMenuBackgrounds } = bluraySlice.actions;
 
 export const selectBluray = (state: RootState) => state.bluray;
 

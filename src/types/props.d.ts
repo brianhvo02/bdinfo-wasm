@@ -13,6 +13,7 @@ export interface StreamProps {
 }
 
 export interface MenuViewProps {
+    backgroundId: string;
     clipId: string;
     page: number;
     setMenuPageCount: Dispatch<SetStateAction<number>>;
