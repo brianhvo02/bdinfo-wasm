@@ -65,6 +65,11 @@ pip install ./pypng
 git clone https://github.com/SAPikachu/igstools.git
 pip wheel --find-links=. ./igstools
 
-cp pypng-*.whl ../../public/static/py/pypng.whl
-cp igstools-*.whl ../../public/static/py/igstools.whl
+wget "https://cdn.jsdelivr.net/pyodide/v0.23.4/full/micropip-0.3.0-py3-none-any.whl"
+wget "https://cdn.jsdelivr.net/pyodide/v0.23.4/full/packaging-23.0-py3-none-any.whl"
+
+cp pypng-*.whl ../../public/static/py/pypng-0.0.1-py3-none-any.whl
+cp igstools-*.whl ../../public/static/py/igstools-0.0.1-py3-none-any.whl
+cp micropip-0.3.0-py3-none-any.whl ../../public/static/py/micropip-0.3.0-py3-none-any.whl
+cp packaging-23.0-py3-none-any.whl ../../public/static/py/packaging-23.0-py3-none-any.whl
 deactivate

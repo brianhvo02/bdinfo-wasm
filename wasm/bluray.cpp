@@ -10,9 +10,6 @@
 #include <iostream>
 #include <fstream>
 #include <filesystem>
-#include <AL/al.h>
-#include <AL/alc.h>
-#include "ts.h"
 
 using namespace emscripten;
 using namespace std;
@@ -491,11 +488,6 @@ vector<Playlist> get_all_playlists() {
     return playlists;
 }
 
-EMSCRIPTEN_KEEPALIVE
-void extract_audio(string clip_id, int pid) {
-    extract_audio_job(clip_id, pid);
-}
-
 EMSCRIPTEN_BINDINGS(libbluray) {
     value_object<BlurayTitle>("BlurayTitle")
         .field("accessible", &BlurayTitle::accessible)
@@ -666,6 +658,4 @@ EMSCRIPTEN_BINDINGS(libbluray) {
     emscripten::function("getPlaylistInfo", &get_playlist_info);
     emscripten::function("getAllPlaylists", &get_all_playlists);
     emscripten::function("getMetadata", &get_metadata);
-    emscripten::function("extractAudio", &extract_audio);
-    // emscripten::function("createAudioDevice", &create_audio_device);
 }

@@ -10,6 +10,7 @@ import { DiscInfoPayload, MenusPayload, Message, MessageType, MetadataPayload, M
 import { reset, selectBluray, setDirname, setDiscInfo, setMenus, setMetadata, setMovieObjects, setPlaylists } from './store/bluray';
 import { Button, CircularProgress, Modal } from '@mui/material';
 import { boolAffirm, findLargestThumbnail, getFilesRecursively } from './util';
+import { showDirectoryPicker } from 'file-system-access';
 
 const App = () => {
     const dispatch = useAppDispatch();
@@ -52,16 +53,6 @@ const App = () => {
                 dispatch(setMenus(payload));
                 break;
             }
-            case 'audio': {
-                const payload = message.payload as Uint8Array;
-                const blob = new Blob([payload], { type: "audio/wav" });
-                const audio = new Audio(window.URL.createObjectURL(blob));
-                audio.addEventListener('canplay', e => {
-                    console.log('Playing audio');
-                    audio.play();
-                });
-                break;
-            }
             default:
                 console.log(message);
         }
@@ -73,7 +64,7 @@ const App = () => {
 
         dispatch(setLoading(true));
 
-        const dirHandle = await window.showDirectoryPicker()
+        const dirHandle = await showDirectoryPicker()
             .catch(e => {
                 dispatch(setLoading(false));
             });

@@ -66,13 +66,13 @@ export const convertPlaylist = ({ id, playItems, subPaths, playMarks }: Playlist
 export const convertPlaylists = (playlists: Playlists) =>
     convertVectorToArray(playlists).map(convertPlaylist);
 
-export const convertMetadata = async (meta: MetaDiscLibrary): Promise<Metadata> => {
+export const convertMetadata = async (fs: typeof FS, meta: MetaDiscLibrary): Promise<Metadata> => {
     return {
         ...meta,
         tocEntries: convertVectorToArray(meta.tocEntries),
         thumbnails: await Promise.all(
             convertVectorToArray(meta.thumbnails).map(async thumbnail => {
-                const base64 = await bufferToBase64(FS.readFile('/mnt/BDMV/META/DL/' + thumbnail.path.slice(1)));
+                const base64 = await bufferToBase64(fs.readFile('/mnt/BDMV/META/DL/' + thumbnail.path.slice(1)));
                 return { ...thumbnail, base64 };
             })
         )

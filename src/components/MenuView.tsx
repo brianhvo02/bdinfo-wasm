@@ -145,7 +145,6 @@ const MenuView = ({ clipId, page, setMenuPageCount }: MenuViewProps) => {
             const defaultButton = bog.buttons.find(button => button.id === bog.def_button);
             if (!defaultButton) return;
 
-            console.log(defaultButton.id, selected)
             const picture = gallery.pictures[defaultButton.states[
                 defaultButton.id === selected ? 'selected' : 'normal'
             ].start];

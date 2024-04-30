@@ -26,6 +26,7 @@ wasm/build
 public/static/js
 public/static/py/*.whl
 src/types/interface.d.ts
+src/libbluray.js
 .vscode
 
 BD_ROM
